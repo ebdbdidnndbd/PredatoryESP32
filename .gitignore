@@ -1,0 +1,11 @@
+build/
+*.bin
+*.elf
+*.map
+*.o
+*.a
+*.d
+*.log
+.sdkconfig
+sdkconfig
+sdkconfig.old
