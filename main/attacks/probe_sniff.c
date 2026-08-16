@@ -15,4 +15,5 @@ void probe_callback(void *buf, wifi_promiscuous_pkt_type_t type) {
 void start_sniffing(void) {
     esp_wifi_set_promiscuous(true);
     esp_wifi_set_promiscuous_rx_cb(probe_callback);
+    ESP_LOGI(TAG, "Sniffing started!");
 }
