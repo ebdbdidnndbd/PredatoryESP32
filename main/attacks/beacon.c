@@ -1,5 +1,8 @@
 #include "esp_wifi.h"
 #include <string.h>
+#include "esp_log.h"
+
+static const char *TAG = "BEACON";
 
 void beacon_flood(char *ssid) {
     uint8_t frame[128] = {0};
@@ -15,5 +18,9 @@ void beacon_flood(char *ssid) {
     memcpy(&frame[16], &frame[10], 6);
     frame[38] = strlen(ssid);
     memcpy(&frame[39], ssid, strlen(ssid));
-    esp_wifi_80211_tx(WIFI_IF_STA, frame, sizeof(frame), false);
+    
+    esp_err_t ret = esp_wifi_80211_tx(WIFI_IF_STA, frame, sizeof(frame), false);
+    if (ret != ESP_OK) {
+        ESP_LOGW(TAG, "Failed to send beacon: %d", ret);
+    }
 }
