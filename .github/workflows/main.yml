@@ -1,0 +1,32 @@
+name: Build ESP32 Firmware
+
+on:
+  push:
+    branches: [ "main" ] # سيُشغّل البناء عند الرفع على الفرع main
+  workflow_dispatch:     # يسمح لك بتشغيل البناء يدوياً من خلال واجهة GitHub
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: espressif/idf:latest # يستخدم بيئة ESP-IDF الجاهزة [citation:1]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Project
+        run: |
+          # يعين الهدف (رقاقة ESP32) ويبني المشروع
+          idf.py set-target esp32
+          idf.py build
+
+      - name: Upload Firmware Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          # سيظهر هذا الاسم في قسم "Artifacts"
+          name: PredatoryESP32-Firmware
+          # يحدد مسار الملفات الثنائية التي نريد تحميلها [citation:1][citation:10]
+          path: |
+            build/bootloader/bootloader.bin
+            build/partition_table/partition-table.bin
+            build/PredatoryESP32.bin
