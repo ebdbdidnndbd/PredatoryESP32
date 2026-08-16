@@ -19,7 +19,7 @@ void beacon_flood(char *ssid) {
     frame[38] = strlen(ssid);
     memcpy(&frame[39], ssid, strlen(ssid));
     
-    esp_err_t ret = esp_wifi_80211_tx(WIFI_IF_STA, frame, sizeof(frame), false);
+    esp_err_t ret = esp_wifi_80211_tx(WIFI_IF_AP, frame, sizeof(frame), false);
     if (ret != ESP_OK) {
         ESP_LOGW(TAG, "Failed to send beacon: %d", ret);
     }
