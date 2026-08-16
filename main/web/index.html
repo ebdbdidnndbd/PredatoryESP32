@@ -1,1 +1,26 @@
-
+<!DOCTYPE html>
+<html>
+<head>
+<title>Predatory ESP32</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+<h1>Predatory ESP32</h1>
+<div class="grid">
+<button onclick="attack('deauth')">Deauth Attack</button>
+<button onclick="attack('beacon')">Beacon Flood</button>
+<button onclick="attack('sniff')">Probe Sniff</button>
+<button onclick="attack('evil_twin')">Evil Twin</button>
+<button onclick="attack('rickroll')">Rickroll</button>
+</div>
+<div id="status">Ready</div>
+</div>
+<script>
+function attack(type) {
+    fetch('/' + type);
+    document.getElementById('status').textContent = type + ' started';
+}
+</script>
+</body>
+</html>
